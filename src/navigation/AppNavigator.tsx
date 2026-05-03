@@ -3,9 +3,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { COLORS } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -33,19 +34,33 @@ const SearchStackNav = createNativeStackNavigator();
 const MessagesStackNav = createNativeStackNavigator();
 const ProfileStackNav = createNativeStackNavigator();
 
+// Wrap each screen in ErrorBoundary (Shneiderman Rule 6: Error Prevention)
+const withEB = (Screen: React.ComponentType<any>, name: string) => {
+  return (props: any) => (
+    <ErrorBoundary fallbackTitle={`The ${name} screen encountered an error.`}>
+      <Screen {...props} />
+    </ErrorBoundary>
+  );
+};
+
 // Home Stack
 function HomeStack() {
   return (
-    <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStackNav.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStackNav.Screen name="Contacts" component={ContactsDirectoryScreen} />
-      <HomeStackNav.Screen name="Calendar" component={CalendarScreen} />
-      <HomeStackNav.Screen name="Voicebox" component={VoiceboxScreen} />
-      <HomeStackNav.Screen name="Request" component={RequestHubScreen} />
-      <HomeStackNav.Screen name="VenueBookingSelect" component={VenueBookingSelectScreen} />
-      <HomeStackNav.Screen name="VenueBookingForm" component={VenueBookingFormScreen} />
-      <HomeStackNav.Screen name="FormRequest" component={FormRequestScreen} />
-      <HomeStackNav.Screen name="Maintenance" component={MaintenanceScreen} />
+    <HomeStackNav.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <HomeStackNav.Screen name="HomeMain" component={withEB(HomeScreen, 'Home')} />
+      <HomeStackNav.Screen name="Contacts" component={withEB(ContactsDirectoryScreen, 'Contacts')} />
+      <HomeStackNav.Screen name="Calendar" component={withEB(CalendarScreen, 'Calendar')} />
+      <HomeStackNav.Screen name="Voicebox" component={withEB(VoiceboxScreen, 'Voicebox')} />
+      <HomeStackNav.Screen name="Request" component={withEB(RequestHubScreen, 'Request')} />
+      <HomeStackNav.Screen name="VenueBookingSelect" component={withEB(VenueBookingSelectScreen, 'Venue Booking')} />
+      <HomeStackNav.Screen name="VenueBookingForm" component={withEB(VenueBookingFormScreen, 'Booking Form')} />
+      <HomeStackNav.Screen name="FormRequest" component={withEB(FormRequestScreen, 'Form Request')} />
+      <HomeStackNav.Screen name="Maintenance" component={withEB(MaintenanceScreen, 'Maintenance')} />
     </HomeStackNav.Navigator>
   );
 }
@@ -53,9 +68,14 @@ function HomeStack() {
 // Schedule Stack
 function ScheduleStack() {
   return (
-    <ScheduleStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <ScheduleStackNav.Screen name="CourseSchedule" component={CourseScheduleScreen} />
-      <ScheduleStackNav.Screen name="MidtermSchedule" component={MidtermScheduleScreen} />
+    <ScheduleStackNav.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <ScheduleStackNav.Screen name="CourseSchedule" component={withEB(CourseScheduleScreen, 'Schedule')} />
+      <ScheduleStackNav.Screen name="MidtermSchedule" component={withEB(MidtermScheduleScreen, 'Midterm')} />
     </ScheduleStackNav.Navigator>
   );
 }
@@ -63,8 +83,13 @@ function ScheduleStack() {
 // Search / AI Chat Stack
 function SearchStack() {
   return (
-    <SearchStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <SearchStackNav.Screen name="AIChat" component={AIChatScreen} />
+    <SearchStackNav.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <SearchStackNav.Screen name="AIChat" component={withEB(AIChatScreen, 'AI Chat')} />
     </SearchStackNav.Navigator>
   );
 }
@@ -72,9 +97,14 @@ function SearchStack() {
 // Messages Stack
 function MessagesStack() {
   return (
-    <MessagesStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <MessagesStackNav.Screen name="MessagesList" component={MessagesListScreen} />
-      <MessagesStackNav.Screen name="ChatThread" component={ChatThreadScreen} />
+    <MessagesStackNav.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <MessagesStackNav.Screen name="MessagesList" component={withEB(MessagesListScreen, 'Messages')} />
+      <MessagesStackNav.Screen name="ChatThread" component={withEB(ChatThreadScreen, 'Chat')} />
     </MessagesStackNav.Navigator>
   );
 }
@@ -82,19 +112,24 @@ function MessagesStack() {
 // Profile Stack
 function ProfileStack() {
   return (
-    <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStackNav.Screen name="ProfileMain" component={ProfileScreen} />
+    <ProfileStackNav.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      <ProfileStackNav.Screen name="ProfileMain" component={withEB(ProfileScreen, 'Profile')} />
     </ProfileStackNav.Navigator>
   );
 }
 
-// Bottom Tabs
+// Bottom Tabs — Shneiderman Rule 1 (Consistency) + Rule 8 (labels on icons)
 function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
           switch (route.name) {
@@ -119,14 +154,20 @@ function MainTabs() {
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.tabInactive,
-        tabBarShowLabel: false,
+        // Shneiderman Rule 8: Show labels on all nav icons to reduce memory load
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+          marginTop: -2,
+        },
         tabBarStyle: {
           backgroundColor: COLORS.white,
           borderTopWidth: 1,
           borderTopColor: COLORS.divider,
           height: Platform.OS === 'ios' ? 85 : 60,
           paddingBottom: Platform.OS === 'ios' ? 25 : 8,
-          paddingTop: 8,
+          paddingTop: 6,
           elevation: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
@@ -135,11 +176,11 @@ function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="HomeTab" component={HomeStack} />
-      <Tab.Screen name="ScheduleTab" component={ScheduleStack} />
-      <Tab.Screen name="SearchTab" component={SearchStack} />
-      <Tab.Screen name="MessagesTab" component={MessagesStack} />
-      <Tab.Screen name="ProfileTab" component={ProfileStack} />
+      <Tab.Screen name="HomeTab" component={HomeStack} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="ScheduleTab" component={ScheduleStack} options={{ tabBarLabel: 'Schedule' }} />
+      <Tab.Screen name="SearchTab" component={SearchStack} options={{ tabBarLabel: 'AI Help' }} />
+      <Tab.Screen name="MessagesTab" component={MessagesStack} options={{ tabBarLabel: 'Messages' }} />
+      <Tab.Screen name="ProfileTab" component={ProfileStack} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
   );
 }
@@ -150,7 +191,7 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
         {!isLoggedIn ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,18 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  FlatList,
   Dimensions,
+  RefreshControl,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
 import { FAQ_ITEMS } from '../data/mockData';
 import TicketCard from '../components/TicketCard';
+import { hapticLight } from '../utils/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -33,12 +35,19 @@ const QUICK_ACCESS_ITEMS = [
 const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { user, tickets, searchQuery, setSearchQuery, sendAIMessage } = useAppStore();
+  const { user, tickets, searchQuery, setSearchQuery, sendAIMessage, isRefreshing, setRefreshing } = useAppStore();
   const [showFAQ, setShowFAQ] = useState(false);
 
   const activeTickets = tickets.filter((t) => t.status === 'In Review' || t.status === 'Completed');
 
+  // Shneiderman Rule 2: Pull-to-refresh shortcut for frequent users
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
+
   const handleFAQPress = (question: string) => {
+    hapticLight();
     setShowFAQ(false);
     setSearchQuery('');
     sendAIMessage(question);
@@ -46,6 +55,7 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleFileComplaint = () => {
+    hapticLight();
     setShowFAQ(false);
     setSearchQuery('');
     navigation.navigate('Voicebox');
@@ -61,7 +71,11 @@ const HomeScreen: React.FC = () => {
           </View>
           <TouchableOpacity
             style={styles.notifBtn}
-            onPress={() => navigation.navigate('Maintenance')}
+            onPress={() => {
+              hapticLight();
+              navigation.navigate('Maintenance');
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
           </TouchableOpacity>
@@ -82,14 +96,19 @@ const HomeScreen: React.FC = () => {
               }}
               onFocus={() => setShowFAQ(true)}
               onBlur={() => setTimeout(() => setShowFAQ(false), 200)}
+              returnKeyType="search"
             />
-            <TouchableOpacity onPress={() => {
-              if (searchQuery.trim()) {
-                sendAIMessage(searchQuery.trim());
-                setSearchQuery('');
-                navigation.navigate('SearchTab', { screen: 'AIChat' });
-              }
-            }}>
+            <TouchableOpacity
+              onPress={() => {
+                if (searchQuery.trim()) {
+                  hapticLight();
+                  sendAIMessage(searchQuery.trim());
+                  setSearchQuery('');
+                  navigation.navigate('SearchTab', { screen: 'AIChat' });
+                }
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               <Ionicons name="mic" size={20} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
@@ -122,9 +141,24 @@ const HomeScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {/* Announcement Banner */}
-        <View style={styles.announcementCard}>
+        <TouchableOpacity
+          style={styles.announcementCard}
+          activeOpacity={0.85}
+          onPress={() => {
+            hapticLight();
+            navigation.navigate('SearchTab', { screen: 'AIChat' });
+          }}
+        >
           <View style={styles.announcementRow}>
             <View style={styles.announcementContent}>
               <View style={styles.newBadge}>
@@ -139,7 +173,7 @@ const HomeScreen: React.FC = () => {
               <Ionicons name="school" size={48} color={COLORS.primary} />
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Quick Access Grid */}
         <Text style={styles.sectionTitle}>Quick Access</Text>
@@ -148,7 +182,10 @@ const HomeScreen: React.FC = () => {
             <TouchableOpacity
               key={index}
               style={styles.quickItem}
-              onPress={() => navigation.navigate(item.screen)}
+              onPress={() => {
+                hapticLight();
+                navigation.navigate(item.screen);
+              }}
               activeOpacity={0.7}
             >
               <View style={[styles.quickIconContainer, { backgroundColor: item.color + '18' }]}>
@@ -167,10 +204,12 @@ const HomeScreen: React.FC = () => {
           <View style={styles.emptyCard}>
             <Ionicons name="checkmark-circle-outline" size={40} color={COLORS.textTertiary} />
             <Text style={styles.emptyText}>No active requests</Text>
+            <Text style={styles.emptySubtext}>Your submissions will appear here</Text>
           </View>
         )}
 
-        <View style={{ height: 20 }} />
+        {/* Bottom spacing for tab bar */}
+        <View style={{ height: SPACING.xxl }} />
       </ScrollView>
     </View>
   );
@@ -185,8 +224,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.xl,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
   },
   headerTop: {
     flexDirection: 'row',
@@ -200,9 +237,9 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   notifBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: MIN_TOUCH_SIZE,
+    height: MIN_TOUCH_SIZE,
+    borderRadius: MIN_TOUCH_SIZE / 2,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -216,7 +253,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
-    height: 44,
+    height: MIN_TOUCH_SIZE,
   },
   searchInput: {
     flex: 1,
@@ -241,6 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
+    minHeight: MIN_TOUCH_SIZE,
   },
   faqText: {
     marginLeft: SPACING.md,
@@ -254,6 +292,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderTopWidth: 1,
     borderTopColor: COLORS.divider,
+    minHeight: MIN_TOUCH_SIZE,
   },
   faqComplaintText: {
     marginLeft: SPACING.md,
@@ -324,6 +363,7 @@ const styles = StyleSheet.create({
     width: (width - SPACING.lg * 2 - SPACING.md * 3) / 4,
     alignItems: 'center',
     marginBottom: SPACING.lg,
+    minHeight: MIN_TOUCH_SIZE,
   },
   quickIconContainer: {
     width: 52,
@@ -349,6 +389,12 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: SPACING.md,
     fontSize: FONT_SIZES.md,
+    color: COLORS.textTertiary,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: SPACING.xs,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textTertiary,
   },
 });

@@ -5,13 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { VENUES } from '../data/mockData';
+import { hapticLight } from '../utils/haptics';
 
 const VenueBookingSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -22,6 +24,7 @@ const VenueBookingSelectScreen: React.FC = () => {
   const availableVenues = VENUES.filter((v) => v.available);
 
   const handleVenueSelect = (venue: typeof VENUES[0]) => {
+    hapticLight();
     navigation.navigate('VenueBookingForm', {
       venue,
       date: selectedDate,
@@ -37,30 +40,31 @@ const VenueBookingSelectScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Date and Time Pickers */}
+        {/* Date and Time Pickers — Shneiderman Rule 8: Show selected values */}
         <View style={styles.pickerCard}>
           <Text style={styles.pickerLabel}>Date</Text>
-          <TouchableOpacity style={styles.pickerBtn}>
+          <TouchableOpacity style={styles.pickerBtn} activeOpacity={0.7}>
             <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
-            <Text style={styles.pickerValue}>{selectedDate}</Text>
+            <Text style={[styles.pickerValue, { marginLeft: SPACING.sm }]}>{selectedDate}</Text>
             <Ionicons name="chevron-down" size={16} color={COLORS.textTertiary} />
           </TouchableOpacity>
 
           <View style={styles.timeRow}>
             <View style={styles.timeCol}>
               <Text style={styles.pickerLabel}>Start Time</Text>
-              <TouchableOpacity style={styles.pickerBtn}>
+              <TouchableOpacity style={styles.pickerBtn} activeOpacity={0.7}>
                 <Ionicons name="time-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.pickerValue}>{startTime}</Text>
+                <Text style={[styles.pickerValue, { marginLeft: SPACING.sm }]}>{startTime}</Text>
                 <Ionicons name="chevron-down" size={16} color={COLORS.textTertiary} />
               </TouchableOpacity>
             </View>
-            <View style={styles.timeCol}>
+            <View style={[styles.timeCol, { marginLeft: SPACING.md }]}>
               <Text style={styles.pickerLabel}>End Time</Text>
-              <TouchableOpacity style={styles.pickerBtn}>
+              <TouchableOpacity style={styles.pickerBtn} activeOpacity={0.7}>
                 <Ionicons name="time-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.pickerValue}>{endTime}</Text>
+                <Text style={[styles.pickerValue, { marginLeft: SPACING.sm }]}>{endTime}</Text>
                 <Ionicons name="chevron-down" size={16} color={COLORS.textTertiary} />
               </TouchableOpacity>
             </View>
@@ -69,23 +73,33 @@ const VenueBookingSelectScreen: React.FC = () => {
 
         {/* Available Venues */}
         <Text style={styles.sectionTitle}>Available Venues</Text>
-        {availableVenues.map((venue) => (
-          <TouchableOpacity
-            key={venue.id}
-            style={styles.venueCard}
-            onPress={() => handleVenueSelect(venue)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.venueInfo}>
-              <Text style={styles.venueName}>{venue.name}</Text>
-              <Text style={styles.venueLocation}>{venue.location}</Text>
-            </View>
-            <View style={styles.capacityBadge}>
-              <Ionicons name="people" size={14} color={COLORS.primary} />
-              <Text style={styles.capacityText}>{venue.maxCapacity}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {availableVenues.length > 0 ? (
+          availableVenues.map((venue) => (
+            <TouchableOpacity
+              key={venue.id}
+              style={styles.venueCard}
+              onPress={() => handleVenueSelect(venue)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.venueInfo}>
+                <Text style={styles.venueName}>{venue.name}</Text>
+                <Text style={styles.venueLocation}>{venue.location}</Text>
+              </View>
+              <View style={styles.capacityBadge}>
+                <Ionicons name="people" size={14} color={COLORS.primary} />
+                <Text style={[styles.capacityText, { marginLeft: SPACING.xs }]}>{venue.maxCapacity}</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={styles.emptyCard}>
+            <Ionicons name="location-outline" size={40} color={COLORS.textTertiary} />
+            <Text style={styles.emptyTitle}>No venues available</Text>
+            <Text style={styles.emptySubtext}>Try selecting a different date or time</Text>
+          </View>
+        )}
+
+        <View style={{ height: SPACING.xxl }} />
       </ScrollView>
     </View>
   );
@@ -123,7 +137,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     marginBottom: SPACING.md,
-    gap: SPACING.sm,
+    minHeight: MIN_TOUCH_SIZE,
   },
   pickerValue: {
     flex: 1,
@@ -133,7 +147,6 @@ const styles = StyleSheet.create({
   },
   timeRow: {
     flexDirection: 'row',
-    gap: SPACING.md,
   },
   timeCol: {
     flex: 1,
@@ -151,6 +164,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
+    minHeight: MIN_TOUCH_SIZE + SPACING.lg,
     ...SHADOWS.small,
   },
   venueInfo: {
@@ -173,12 +187,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
-    gap: SPACING.xs,
   },
   capacityText: {
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.md,
+    padding: SPACING.xxl,
+    alignItems: 'center',
+    ...SHADOWS.card,
+  },
+  emptyTitle: {
+    marginTop: SPACING.md,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: SPACING.xs,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textTertiary,
   },
 });
 

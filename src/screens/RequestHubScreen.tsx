@@ -4,8 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import TicketCard from '../components/TicketCard';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
+import { hapticLight } from '../utils/haptics';
 
 const RequestHubScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -26,7 +27,10 @@ const RequestHubScreen: React.FC = () => {
         {/* Venue Booking Card */}
         <TouchableOpacity
           style={styles.bigCard}
-          onPress={() => navigation.navigate('VenueBookingSelect')}
+          onPress={() => {
+            hapticLight();
+            navigation.navigate('VenueBookingSelect');
+          }}
           activeOpacity={0.7}
         >
           <View style={styles.bigIconContainer}>
@@ -38,7 +42,10 @@ const RequestHubScreen: React.FC = () => {
         {/* Form Request Card */}
         <TouchableOpacity
           style={styles.bigCard}
-          onPress={() => navigation.navigate('FormRequest')}
+          onPress={() => {
+            hapticLight();
+            navigation.navigate('FormRequest');
+          }}
           activeOpacity={0.7}
         >
           <View style={styles.bigIconContainer}>
@@ -56,6 +63,19 @@ const RequestHubScreen: React.FC = () => {
             ))}
           </>
         )}
+
+        {requestTickets.length === 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Ongoing Request</Text>
+            <View style={styles.emptyCard}>
+              <Ionicons name="document-text-outline" size={40} color={COLORS.textTertiary} />
+              <Text style={styles.emptyTitle}>No ongoing requests</Text>
+              <Text style={styles.emptySubtext}>Book a venue or submit a form above</Text>
+            </View>
+          </>
+        )}
+
+        <View style={{ height: SPACING.xxl }} />
       </ScrollView>
     </View>
   );
@@ -101,6 +121,24 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.md,
+    padding: SPACING.xxl,
+    alignItems: 'center',
+    ...SHADOWS.card,
+  },
+  emptyTitle: {
+    marginTop: SPACING.md,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: SPACING.xs,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textTertiary,
   },
 });
 

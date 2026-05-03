@@ -27,6 +27,8 @@ interface AppState {
   // UI State
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  isRefreshing: boolean;
+  setRefreshing: (val: boolean) => void;
 }
 
 let ticketCounter = 1032;
@@ -43,9 +45,9 @@ const generateMsgId = (): string => {
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
-  // User state
+  // User state — start logged out so login screen is shown
   user: USER_PROFILE,
-  isLoggedIn: true,
+  isLoggedIn: false,
 
   login: (name: string, sid: string) =>
     set({
@@ -167,7 +169,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       ],
     }),
 
-  // Search
+  // Search / UI
   searchQuery: '',
   setSearchQuery: (query) => set({ searchQuery: query }),
+  isRefreshing: false,
+  setRefreshing: (val) => set({ isRefreshing: val }),
 }));

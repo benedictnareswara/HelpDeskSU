@@ -8,18 +8,21 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
+import { hapticLight, hapticSuccess } from '../utils/haptics';
 
 const AIChatScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { chatMessages, sendAIMessage } = useAppStore();
   const [inputText, setInputText] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   // Pre-fill from search
@@ -38,11 +41,16 @@ const AIChatScreen: React.FC = () => {
 
   const handleSend = () => {
     if (!inputText.trim()) return;
+    hapticLight();
+    setIsSending(true);
     sendAIMessage(inputText.trim());
     setInputText('');
+    // Shneiderman Rule 3: Show brief sending state
+    setTimeout(() => setIsSending(false), 900);
   };
 
   const handleActionPress = (screen: string) => {
+    hapticLight();
     // Navigate to HomeTab first, then to the nested screen
     navigation.navigate('HomeTab', { screen });
   };
@@ -72,7 +80,7 @@ const AIChatScreen: React.FC = () => {
               {msg.actions.map((action: any, idx: number) => (
                 <TouchableOpacity
                   key={idx}
-                  style={styles.actionBtn}
+                  style={[styles.actionBtn, idx > 0 && { marginLeft: SPACING.sm }]}
                   onPress={() => handleActionPress(action.screen)}
                   activeOpacity={0.7}
                 >
@@ -95,16 +103,23 @@ const AIChatScreen: React.FC = () => {
       <Header title="Smart Campus Helpdesk" />
       <KeyboardAvoidingView
         style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView
           ref={scrollRef}
           style={styles.messagesScroll}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {chatMessages.map(renderMessage)}
+          {isSending && (
+            <View style={styles.typingIndicator}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.typingText}>AI is thinking...</Text>
+            </View>
+          )}
         </ScrollView>
 
         {/* Input Bar */}
@@ -120,11 +135,16 @@ const AIChatScreen: React.FC = () => {
               returnKeyType="send"
               multiline
             />
-            <TouchableOpacity style={styles.micBtn}>
+            <TouchableOpacity style={styles.micBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="mic" size={20} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.sendBtn} onPress={handleSend} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
+            onPress={handleSend}
+            activeOpacity={0.7}
+            disabled={!inputText.trim()}
+          >
             <Ionicons name="send" size={20} color={COLORS.white} />
           </TouchableOpacity>
         </View>
@@ -159,7 +179,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: SPACING.xs,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    maxWidth: '80%',
+    maxWidth: '80%' as any,
   },
   userBubbleText: {
     color: COLORS.chatBubbleUserText,
@@ -200,7 +220,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: SPACING.sm,
-    gap: SPACING.sm,
   },
   actionBtn: {
     flexDirection: 'row',
@@ -209,6 +228,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.full,
+    marginBottom: SPACING.xs,
+    minHeight: MIN_TOUCH_SIZE,
   },
   actionBtnText: {
     color: COLORS.white,
@@ -219,6 +240,18 @@ const styles = StyleSheet.create({
   disclaimer: {
     marginTop: SPACING.sm,
     fontSize: FONT_SIZES.xs,
+    color: COLORS.textTertiary,
+    fontStyle: 'italic',
+  },
+  typingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    paddingLeft: 40,
+  },
+  typingText: {
+    marginLeft: SPACING.sm,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textTertiary,
     fontStyle: 'italic',
   },
@@ -238,7 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
-    minHeight: 44,
+    minHeight: MIN_TOUCH_SIZE,
     marginRight: SPACING.sm,
   },
   textInput: {
@@ -250,14 +283,22 @@ const styles = StyleSheet.create({
   },
   micBtn: {
     padding: SPACING.xs,
+    minWidth: MIN_TOUCH_SIZE,
+    minHeight: MIN_TOUCH_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: MIN_TOUCH_SIZE,
+    height: MIN_TOUCH_SIZE,
+    borderRadius: MIN_TOUCH_SIZE / 2,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Shneiderman Rule 5: Disable send when empty (error prevention)
+  sendBtnDisabled: {
+    backgroundColor: COLORS.primary + '50',
   },
 });
 

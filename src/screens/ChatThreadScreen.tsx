@@ -12,8 +12,9 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
+import { hapticLight } from '../utils/haptics';
 
 const ChatThreadScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -34,6 +35,7 @@ const ChatThreadScreen: React.FC = () => {
 
   const handleSend = () => {
     if (!inputText.trim()) return;
+    hapticLight();
     addMessage(conversationId, inputText.trim());
     setInputText('');
   };
@@ -42,7 +44,11 @@ const ChatThreadScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Ionicons name="chevron-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.headerAvatar}>
@@ -55,14 +61,15 @@ const ChatThreadScreen: React.FC = () => {
 
       <KeyboardAvoidingView
         style={styles.chatArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           ref={scrollRef}
           style={styles.messagesScroll}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {conversation?.messages.map((msg) => (
             <View
@@ -90,11 +97,20 @@ const ChatThreadScreen: React.FC = () => {
               <Text style={styles.msgTime}>{msg.timestamp}</Text>
             </View>
           ))}
+          {(!conversation || conversation.messages.length === 0) && (
+            <View style={styles.emptyChat}>
+              <Ionicons name="chatbubble-outline" size={40} color={COLORS.textTertiary} />
+              <Text style={styles.emptyChatText}>Start a conversation</Text>
+            </View>
+          )}
         </ScrollView>
 
         {/* Input Bar */}
         <View style={styles.inputBar}>
-          <TouchableOpacity style={styles.attachBtn}>
+          <TouchableOpacity
+            style={styles.attachBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Ionicons name="attach" size={22} color={COLORS.textSecondary} />
           </TouchableOpacity>
           <View style={styles.inputContainer}>
@@ -108,10 +124,17 @@ const ChatThreadScreen: React.FC = () => {
               returnKeyType="send"
             />
           </View>
-          <TouchableOpacity style={styles.micBtn}>
+          <TouchableOpacity
+            style={styles.micBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Ionicons name="mic" size={22} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+          <TouchableOpacity
+            style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
+            onPress={handleSend}
+            disabled={!inputText.trim()}
+          >
             <Ionicons name="send" size={18} color={COLORS.white} />
           </TouchableOpacity>
         </View>
@@ -134,6 +157,10 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginRight: SPACING.sm,
+    minWidth: MIN_TOUCH_SIZE,
+    minHeight: MIN_TOUCH_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerAvatar: {
     width: 36,
@@ -159,6 +186,7 @@ const styles = StyleSheet.create({
   messagesContent: {
     padding: SPACING.lg,
     paddingBottom: SPACING.md,
+    flexGrow: 1,
   },
   msgContainer: {
     marginBottom: SPACING.lg,
@@ -170,7 +198,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   bubble: {
-    maxWidth: '80%',
+    maxWidth: '80%' as any,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderRadius: RADIUS.lg,
@@ -198,6 +226,17 @@ const styles = StyleSheet.create({
     color: COLORS.textTertiary,
     marginTop: SPACING.xs,
   },
+  emptyChat: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xxxl * 3,
+  },
+  emptyChatText: {
+    marginTop: SPACING.md,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textTertiary,
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -209,6 +248,10 @@ const styles = StyleSheet.create({
   },
   attachBtn: {
     padding: SPACING.sm,
+    minWidth: MIN_TOUCH_SIZE,
+    minHeight: MIN_TOUCH_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputContainer: {
     flex: 1,
@@ -225,6 +268,10 @@ const styles = StyleSheet.create({
   },
   micBtn: {
     padding: SPACING.sm,
+    minWidth: MIN_TOUCH_SIZE,
+    minHeight: MIN_TOUCH_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendBtn: {
     width: 36,
@@ -233,6 +280,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sendBtnDisabled: {
+    backgroundColor: COLORS.primary + '50',
   },
 });
 

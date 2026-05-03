@@ -1,17 +1,23 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import TicketCard from '../components/TicketCard';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
 
 const ProfileScreen: React.FC = () => {
-  const { user, tickets } = useAppStore();
+  const { user, tickets, isRefreshing, setRefreshing } = useAppStore();
 
   const ongoingRequests = tickets.filter(
     (t) => t.type === 'form_request' || t.type === 'venue_booking'
   );
+
+  // Shneiderman Rule 2: Pull-to-refresh shortcut
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -20,6 +26,14 @@ const ProfileScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {/* Avatar & Info */}
         <View style={styles.profileCard}>
@@ -40,12 +54,13 @@ const ProfileScreen: React.FC = () => {
 
         {ongoingRequests.length === 0 && (
           <View style={styles.emptyCard}>
-            <Ionicons name="document-text-outline" size={32} color={COLORS.textTertiary} />
-            <Text style={styles.emptyText}>No ongoing requests</Text>
+            <Ionicons name="document-text-outline" size={40} color={COLORS.textTertiary} />
+            <Text style={styles.emptyTitle}>No ongoing requests</Text>
+            <Text style={styles.emptySubtext}>Submit a request from the Home screen</Text>
           </View>
         )}
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: SPACING.xxl }} />
       </ScrollView>
     </View>
   );
@@ -99,9 +114,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.card,
   },
-  emptyText: {
-    marginTop: SPACING.sm,
+  emptyTitle: {
+    marginTop: SPACING.md,
     fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: SPACING.xs,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textTertiary,
   },
 });

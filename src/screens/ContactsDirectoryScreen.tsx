@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SectionList } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SectionList, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
-import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { CONTACTS } from '../data/mockData';
+import { useAppStore } from '../store/useAppStore';
+import { hapticLight } from '../utils/haptics';
 
 const TABS = ['All', 'SAA', 'Lecturer'] as const;
 
 const ContactsDirectoryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { isRefreshing, setRefreshing } = useAppStore();
   const [activeTab, setActiveTab] = useState<string>('All');
   const [search, setSearch] = useState('');
 
@@ -35,6 +38,12 @@ const ContactsDirectoryScreen: React.FC = () => {
       data: grouped[letter],
     }));
 
+  // Shneiderman Rule 2: Pull-to-refresh shortcut
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
+
   return (
     <View style={styles.container}>
       <Header title="Contacts" onBack={() => navigation.goBack()} />
@@ -45,11 +54,18 @@ const ContactsDirectoryScreen: React.FC = () => {
 
         {/* Tabs */}
         <View style={styles.tabRow}>
-          {TABS.map((tab) => (
+          {TABS.map((tab, index) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab)}
+              style={[
+                styles.tab,
+                activeTab === tab && styles.tabActive,
+                index > 0 && { marginLeft: SPACING.sm },
+              ]}
+              onPress={() => {
+                hapticLight();
+                setActiveTab(tab);
+              }}
               activeOpacity={0.7}
             >
               <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
@@ -68,7 +84,7 @@ const ContactsDirectoryScreen: React.FC = () => {
             </View>
           )}
           renderItem={({ item }) => (
-            <View style={styles.contactRow}>
+            <TouchableOpacity style={styles.contactRow} activeOpacity={0.7}>
               <View style={styles.contactAvatar}>
                 <Ionicons name="person" size={20} color={COLORS.white} />
               </View>
@@ -76,11 +92,28 @@ const ContactsDirectoryScreen: React.FC = () => {
                 <Text style={styles.contactName}>{item.name}</Text>
                 <Text style={styles.contactRole}>{item.role}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={48} color={COLORS.textTertiary} />
+              <Text style={styles.emptyTitle}>No contacts found</Text>
+              <Text style={styles.emptySubtext}>
+                {search ? 'Try a different search term' : 'Contacts will appear here'}
+              </Text>
+            </View>
+          }
         />
       </View>
     </View>
@@ -104,7 +137,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
-    gap: SPACING.sm,
   },
   tab: {
     paddingHorizontal: SPACING.lg,
@@ -113,6 +145,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabActive: {
     backgroundColor: COLORS.primary,
@@ -146,6 +181,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.divider,
+    minHeight: MIN_TOUCH_SIZE + SPACING.sm,
   },
   contactAvatar: {
     width: 40,
@@ -168,6 +204,21 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
     marginTop: 1,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: SPACING.xxxl * 2,
+  },
+  emptyTitle: {
+    marginTop: SPACING.md,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: SPACING.xs,
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textTertiary,
   },
 });
 

@@ -7,13 +7,18 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import TicketCard from '../components/TicketCard';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
+import { hapticLight, hapticSuccess, hapticError } from '../utils/haptics';
+
+const MAX_COMPLAINT_LENGTH = 500;
 
 const VoiceboxScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -22,69 +27,111 @@ const VoiceboxScreen: React.FC = () => {
 
   const complaints = tickets.filter((t) => t.type === 'complaint');
 
+  // Shneiderman Rule 5: Prevent empty submissions
   const handleSubmit = () => {
     if (!complaintText.trim()) {
-      Alert.alert('Error', 'Please enter your complaint before submitting.');
+      hapticError();
+      Alert.alert('Empty Complaint', 'Please describe your complaint before submitting.');
       return;
     }
 
-    addTicket({
-      title: complaintText.trim().substring(0, 50) + (complaintText.length > 50 ? '...' : ''),
-      type: 'complaint',
-      submittedAt: 'Just now',
-      status: 'In Review',
-      progress: 25,
-    });
+    if (complaintText.trim().length < 10) {
+      hapticError();
+      Alert.alert('Too Short', 'Please provide at least 10 characters describing your complaint.');
+      return;
+    }
 
-    setComplaintText('');
-    Alert.alert('Submitted', 'Your anonymous complaint has been filed.');
+    // Shneiderman Rule 6: Confirm before submitting
+    Alert.alert(
+      'Submit Complaint',
+      'Your complaint will be filed anonymously. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit',
+          onPress: () => {
+            addTicket({
+              title: complaintText.trim().substring(0, 50) + (complaintText.length > 50 ? '...' : ''),
+              type: 'complaint',
+              submittedAt: 'Just now',
+              status: 'In Review',
+              progress: 25,
+            });
+            hapticSuccess();
+            setComplaintText('');
+            // Shneiderman Rule 4: Clear task closure
+            Alert.alert('✅ Submitted', 'Your anonymous complaint has been filed successfully. You can track it below.');
+          },
+        },
+      ]
+    );
   };
 
   return (
     <View style={styles.container}>
       <Header title="SU Voicebox" onBack={() => navigation.goBack()} />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* File a Complaint */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>File a Complaint</Text>
-          <Text style={styles.cardSubtitle}>Anonymous • Your identity is protected</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="Describe your complaint..."
-            placeholderTextColor={COLORS.textTertiary}
-            value={complaintText}
-            onChangeText={setComplaintText}
-            multiline
-            numberOfLines={5}
-            textAlignVertical="top"
-          />
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.attachIcon}>
-              <Ionicons name="attach" size={22} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} activeOpacity={0.7}>
-              <Ionicons name="send" size={18} color={COLORS.white} />
-            </TouchableOpacity>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* File a Complaint */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>File a Complaint</Text>
+            <Text style={styles.cardSubtitle}>Anonymous • Your identity is protected</Text>
+            <TextInput
+              style={styles.textArea}
+              placeholder="Describe your complaint..."
+              placeholderTextColor={COLORS.textTertiary}
+              value={complaintText}
+              onChangeText={(text) => {
+                if (text.length <= MAX_COMPLAINT_LENGTH) setComplaintText(text);
+              }}
+              multiline
+              numberOfLines={5}
+              textAlignVertical="top"
+            />
+            {/* Shneiderman Rule 3: Character count feedback */}
+            <Text style={styles.charCount}>{complaintText.length}/{MAX_COMPLAINT_LENGTH}</Text>
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={styles.attachIcon}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="attach" size={22} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitBtn, !complaintText.trim() && styles.submitBtnDisabled]}
+                onPress={handleSubmit}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="send" size={18} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        {/* Ongoing Complaints */}
-        <Text style={styles.sectionTitle}>On-Going Complaints</Text>
-        {complaints.map((ticket) => (
-          <TicketCard key={ticket.id} ticket={ticket} />
-        ))}
+          {/* Ongoing Complaints */}
+          <Text style={styles.sectionTitle}>On-Going Complaints</Text>
+          {complaints.map((ticket) => (
+            <TicketCard key={ticket.id} ticket={ticket} />
+          ))}
 
-        {complaints.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Ionicons name="chatbubble-ellipses-outline" size={32} color={COLORS.textTertiary} />
-            <Text style={styles.emptyText}>No complaints filed yet</Text>
-          </View>
-        )}
-      </ScrollView>
+          {complaints.length === 0 && (
+            <View style={styles.emptyCard}>
+              <Ionicons name="chatbubble-ellipses-outline" size={40} color={COLORS.textTertiary} />
+              <Text style={styles.emptyTitle}>No complaints filed yet</Text>
+              <Text style={styles.emptySubtext}>Your submissions will appear here</Text>
+            </View>
+          )}
+
+          <View style={{ height: SPACING.xxl }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -129,6 +176,12 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     minHeight: 120,
   },
+  charCount: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textTertiary,
+    textAlign: 'right',
+    marginTop: SPACING.xs,
+  },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -137,14 +190,21 @@ const styles = StyleSheet.create({
   },
   attachIcon: {
     padding: SPACING.sm,
+    minWidth: MIN_TOUCH_SIZE,
+    minHeight: MIN_TOUCH_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   submitBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: MIN_TOUCH_SIZE,
+    height: MIN_TOUCH_SIZE,
+    borderRadius: MIN_TOUCH_SIZE / 2,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  submitBtnDisabled: {
+    backgroundColor: COLORS.primary + '50',
   },
   sectionTitle: {
     fontSize: FONT_SIZES.lg,
@@ -159,9 +219,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.card,
   },
-  emptyText: {
-    marginTop: SPACING.sm,
+  emptyTitle: {
+    marginTop: SPACING.md,
     fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: SPACING.xs,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textTertiary,
   },
 });

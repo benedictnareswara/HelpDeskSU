@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { useAppStore } from '../store/useAppStore';
+import { hapticLight } from '../utils/haptics';
 
 const TABS = ['All', 'Groups', 'Lecturer'] as const;
 
 const MessagesListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { conversations } = useAppStore();
+  const { conversations, isRefreshing, setRefreshing } = useAppStore();
   const [activeTab, setActiveTab] = useState<string>('All');
   const [search, setSearch] = useState('');
 
@@ -21,15 +22,22 @@ const MessagesListScreen: React.FC = () => {
     return true;
   });
 
+  // Shneiderman Rule 2: Pull-to-refresh shortcut
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
+
   const renderConversation = ({ item }: any) => (
     <TouchableOpacity
       style={styles.convRow}
-      onPress={() =>
+      onPress={() => {
+        hapticLight();
         navigation.navigate('ChatThread', {
           conversationId: item.id,
           contactName: item.contactName,
-        })
-      }
+        });
+      }}
       activeOpacity={0.7}
     >
       <View style={styles.avatar}>
@@ -57,13 +65,20 @@ const MessagesListScreen: React.FC = () => {
           />
         </View>
 
-        {/* Filter Tabs */}
+        {/* Filter Tabs — Shneiderman Rule 1: Consistent tab pattern */}
         <View style={styles.tabRow}>
-          {TABS.map((tab) => (
+          {TABS.map((tab, index) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab)}
+              style={[
+                styles.tab,
+                activeTab === tab && styles.tabActive,
+                index > 0 && { marginLeft: SPACING.sm },
+              ]}
+              onPress={() => {
+                hapticLight();
+                setActiveTab(tab);
+              }}
               activeOpacity={0.7}
             >
               <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
@@ -79,10 +94,21 @@ const MessagesListScreen: React.FC = () => {
           renderItem={renderConversation}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubbles-outline" size={40} color={COLORS.textTertiary} />
-              <Text style={styles.emptyText}>No conversations found</Text>
+              <Ionicons name="chatbubbles-outline" size={48} color={COLORS.textTertiary} />
+              <Text style={styles.emptyTitle}>No conversations found</Text>
+              <Text style={styles.emptySubtext}>
+                {search ? 'Try a different search term' : 'Your messages will appear here'}
+              </Text>
             </View>
           }
         />
@@ -108,7 +134,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
-    gap: SPACING.sm,
   },
   tab: {
     paddingHorizontal: SPACING.lg,
@@ -117,6 +142,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabActive: {
     backgroundColor: COLORS.primary,
@@ -133,6 +161,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xxl,
   },
   convRow: {
     flexDirection: 'row',
@@ -140,11 +169,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.divider,
+    minHeight: MIN_TOUCH_SIZE + SPACING.md,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: MIN_TOUCH_SIZE,
+    height: MIN_TOUCH_SIZE,
+    borderRadius: MIN_TOUCH_SIZE / 2,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -171,9 +201,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: SPACING.xxxl * 2,
   },
-  emptyText: {
+  emptyTitle: {
     marginTop: SPACING.md,
     fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    marginTop: SPACING.xs,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textTertiary,
   },
 });

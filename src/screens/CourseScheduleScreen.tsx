@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
-import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS, MIN_TOUCH_SIZE } from '../utils/theme';
 import { TODAY_SCHEDULE } from '../data/mockData';
+import { hapticLight } from '../utils/haptics';
 
 const CourseScheduleScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -20,28 +21,38 @@ const CourseScheduleScreen: React.FC = () => {
         {/* Today's Schedule Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Today's Schedule</Text>
-          {TODAY_SCHEDULE.map((course, index) => (
-            <View key={course.id} style={[styles.courseBlock, index > 0 && styles.courseBlockBorder]}>
-              <View style={styles.timeCol}>
-                <Text style={styles.timeText}>{course.startTime}</Text>
-                <Text style={styles.timeEndText}>{course.endTime}</Text>
-              </View>
-              <View style={styles.courseInfo}>
-                <Text style={styles.courseName}>{course.courseName}</Text>
-                <Text style={styles.lecturerName}>{course.lecturer}</Text>
-                <View style={styles.roomBadge}>
-                  <Text style={styles.roomText}>{course.room}</Text>
+          {TODAY_SCHEDULE.length > 0 ? (
+            TODAY_SCHEDULE.map((course, index) => (
+              <View key={course.id} style={[styles.courseBlock, index > 0 && styles.courseBlockBorder]}>
+                <View style={styles.timeCol}>
+                  <Text style={styles.timeText}>{course.startTime}</Text>
+                  <Text style={styles.timeEndText}>{course.endTime}</Text>
                 </View>
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseName}>{course.courseName}</Text>
+                  <Text style={styles.lecturerName}>{course.lecturer}</Text>
+                  <View style={styles.roomBadge}>
+                    <Text style={styles.roomText}>{course.room}</Text>
+                  </View>
+                </View>
+                <Text style={styles.dayText}>{course.day}</Text>
               </View>
-              <Text style={styles.dayText}>{course.day}</Text>
+            ))
+          ) : (
+            <View style={styles.emptySchedule}>
+              <Ionicons name="calendar-outline" size={32} color={COLORS.textTertiary} />
+              <Text style={styles.emptyText}>No classes today</Text>
             </View>
-          ))}
+          )}
         </View>
 
         {/* Quick Links */}
         <TouchableOpacity
           style={styles.linkCard}
-          onPress={() => navigation.navigate('MidtermSchedule')}
+          onPress={() => {
+            hapticLight();
+            navigation.navigate('MidtermSchedule');
+          }}
           activeOpacity={0.7}
         >
           <Ionicons name="calendar-outline" size={22} color={COLORS.primary} />
@@ -67,15 +78,18 @@ const CourseScheduleScreen: React.FC = () => {
           </View>
           <TouchableOpacity
             style={styles.messageBtn}
-            onPress={() =>
+            onPress={() => {
+              hapticLight();
               navigation.navigate('MessagesTab', {
                 screen: 'MessagesList',
-              })
-            }
+              });
+            }}
           >
             <Ionicons name="chatbubble" size={20} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
+
+        <View style={{ height: SPACING.xxl }} />
       </ScrollView>
     </View>
   );
@@ -159,6 +173,15 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontWeight: '500',
   },
+  emptySchedule: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xl,
+  },
+  emptyText: {
+    marginTop: SPACING.sm,
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textTertiary,
+  },
   linkCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -166,6 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
+    minHeight: MIN_TOUCH_SIZE + SPACING.md,
     ...SHADOWS.small,
   },
   linkText: {
@@ -212,9 +236,9 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   messageBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: MIN_TOUCH_SIZE,
+    height: MIN_TOUCH_SIZE,
+    borderRadius: MIN_TOUCH_SIZE / 2,
     backgroundColor: COLORS.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
