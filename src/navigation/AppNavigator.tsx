@@ -12,10 +12,12 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CourseScheduleScreen from '../screens/CourseScheduleScreen';
+import CourseDetailScreen from '../screens/CourseDetailScreen';
 import MidtermScheduleScreen from '../screens/MidtermScheduleScreen';
 import AIChatScreen from '../screens/AIChatScreen';
 import MessagesListScreen from '../screens/MessagesListScreen';
 import ChatThreadScreen from '../screens/ChatThreadScreen';
+import NewChatScreen from '../screens/NewChatScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ContactsDirectoryScreen from '../screens/ContactsDirectoryScreen';
 import CalendarScreen from '../screens/CalendarScreen';
@@ -25,6 +27,9 @@ import VenueBookingSelectScreen from '../screens/VenueBookingSelectScreen';
 import VenueBookingFormScreen from '../screens/VenueBookingFormScreen';
 import FormRequestScreen from '../screens/FormRequestScreen';
 import MaintenanceScreen from '../screens/MaintenanceScreen';
+import MaintenanceRequestScreen from '../screens/MaintenanceRequestScreen';
+import TicketDetailScreen from '../screens/TicketDetailScreen';
+import FeedbackScreen from '../screens/FeedbackScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -61,6 +66,9 @@ function HomeStack() {
       <HomeStackNav.Screen name="VenueBookingForm" component={withEB(VenueBookingFormScreen, 'Booking Form')} />
       <HomeStackNav.Screen name="FormRequest" component={withEB(FormRequestScreen, 'Form Request')} />
       <HomeStackNav.Screen name="Maintenance" component={withEB(MaintenanceScreen, 'Maintenance')} />
+      <HomeStackNav.Screen name="MaintenanceRequest" component={withEB(MaintenanceRequestScreen, 'Maintenance Request')} />
+      <HomeStackNav.Screen name="TicketDetail" component={withEB(TicketDetailScreen, 'Ticket Detail')} />
+      <HomeStackNav.Screen name="Feedback" component={withEB(FeedbackScreen, 'Feedback')} />
     </HomeStackNav.Navigator>
   );
 }
@@ -76,6 +84,7 @@ function ScheduleStack() {
     >
       <ScheduleStackNav.Screen name="CourseSchedule" component={withEB(CourseScheduleScreen, 'Schedule')} />
       <ScheduleStackNav.Screen name="MidtermSchedule" component={withEB(MidtermScheduleScreen, 'Midterm')} />
+      <ScheduleStackNav.Screen name="CourseDetail" component={withEB(CourseDetailScreen, 'Course Detail')} />
     </ScheduleStackNav.Navigator>
   );
 }
@@ -105,6 +114,7 @@ function MessagesStack() {
     >
       <MessagesStackNav.Screen name="MessagesList" component={withEB(MessagesListScreen, 'Messages')} />
       <MessagesStackNav.Screen name="ChatThread" component={withEB(ChatThreadScreen, 'Chat')} />
+      <MessagesStackNav.Screen name="NewChat" component={withEB(NewChatScreen, 'New Chat')} />
     </MessagesStackNav.Navigator>
   );
 }
@@ -119,6 +129,8 @@ function ProfileStack() {
       }}
     >
       <ProfileStackNav.Screen name="ProfileMain" component={withEB(ProfileScreen, 'Profile')} />
+      <ProfileStackNav.Screen name="TicketDetail" component={withEB(TicketDetailScreen, 'Ticket Detail')} />
+      <ProfileStackNav.Screen name="Feedback" component={withEB(FeedbackScreen, 'Feedback')} />
     </ProfileStackNav.Navigator>
   );
 }

@@ -23,11 +23,11 @@ const VenueBookingFormScreen: React.FC = () => {
   const route = useRoute<any>();
   const { addTicket } = useAppStore();
 
-  const { venue, date, startTime, endTime } = route.params;
+  const { venue, date, startTime, endTime, editMode, existingTicketId, existingPurpose, existingPic, existingEmail } = route.params;
 
-  const [purpose, setPurpose] = useState('');
-  const [pic, setPic] = useState('');
-  const [email, setEmail] = useState('');
+  const [purpose, setPurpose] = useState(existingPurpose || '');
+  const [pic, setPic] = useState(existingPic || '');
+  const [email, setEmail] = useState(existingEmail || '');
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -58,8 +58,10 @@ const VenueBookingFormScreen: React.FC = () => {
     }
 
     Alert.alert(
-      'Confirm Submission',
-      `Book "${venue.name}" on ${date} from ${startTime} to ${endTime}?`,
+      editMode ? 'Confirm Update' : 'Confirm Submission',
+      editMode
+        ? `Update booking for "${venue.name}" on ${date} from ${startTime} to ${endTime}?`
+        : `Book "${venue.name}" on ${date} from ${startTime} to ${endTime}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -161,7 +163,7 @@ const VenueBookingFormScreen: React.FC = () => {
               onPress={handleSubmit}
               activeOpacity={0.7}
             >
-              <Text style={styles.submitBtnText}>Submit Request</Text>
+              <Text style={styles.submitBtnText}>{editMode ? 'Update Request' : 'Submit Request'}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

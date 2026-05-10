@@ -2,14 +2,35 @@
 
 export type TicketStatus = 'In Review' | 'Completed' | 'Approved' | 'Declined';
 
+export type TicketType = 'complaint' | 'venue_booking' | 'form_request' | 'maintenance' | 'feedback';
+
+export interface TicketHistoryEntry {
+  status: TicketStatus | 'Submitted';
+  timestamp: string;
+  note?: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
-  type: 'complaint' | 'venue_booking' | 'form_request';
+  type: TicketType;
   submittedAt: string;
   status: TicketStatus;
   progress: number; // 0-100
   details?: string;
+  history?: TicketHistoryEntry[];
+  // Maintenance-specific
+  location?: string;
+  category?: string;
+  urgency?: string;
+  // Venue booking-specific
+  venueName?: string;
+  venueDate?: string;
+  venueStartTime?: string;
+  venueEndTime?: string;
+  purpose?: string;
+  pic?: string;
+  email?: string;
 }
 
 export interface UserProfile {
@@ -25,6 +46,9 @@ export interface Contact {
   role: string;
   category: 'SAA' | 'Lecturer' | 'All';
   avatar?: string;
+  email?: string;
+  phone?: string;
+  department?: string;
 }
 
 export interface Message {

@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS, FONT_SIZES, SPACING, RADIUS, SHADOWS } from '../utils/theme';
 import { Ticket } from '../types';
 
 interface TicketCardProps {
   ticket: Ticket;
+  onPress?: () => void;
 }
 
 const getStatusColor = (status: string) => {
@@ -37,16 +38,39 @@ const getStatusBgColor = (status: string) => {
   }
 };
 
-const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
+const getTypeBadge = (type: string) => {
+  switch (type) {
+    case 'complaint':
+      return { label: 'Complaint', color: '#E74C3C' };
+    case 'venue_booking':
+      return { label: 'Venue', color: '#3498DB' };
+    case 'form_request':
+      return { label: 'Form', color: '#27AE60' };
+    case 'maintenance':
+      return { label: 'Maintenance', color: '#F39C12' };
+    case 'feedback':
+      return { label: 'Feedback', color: '#9B59B6' };
+    default:
+      return { label: 'Other', color: COLORS.textSecondary };
+  }
+};
+
+const TicketCard: React.FC<TicketCardProps> = ({ ticket, onPress }) => {
   const statusColor = getStatusColor(ticket.status);
   const statusBg = getStatusBgColor(ticket.status);
+  const typeBadge = getTypeBadge(ticket.type);
 
-  return (
+  const content = (
     <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.titleCol}>
           <Text style={styles.title} numberOfLines={1}>{ticket.title}</Text>
-          <Text style={styles.subtitle}>{ticket.submittedAt}</Text>
+          <View style={styles.metaRow}>
+            <Text style={styles.subtitle}>{ticket.submittedAt}</Text>
+            <View style={[styles.typeBadge, { backgroundColor: typeBadge.color + '18' }]}>
+              <Text style={[styles.typeText, { color: typeBadge.color }]}>{typeBadge.label}</Text>
+            </View>
+          </View>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
           <Text style={[styles.statusText, { color: statusColor }]}>{ticket.status}</Text>
@@ -68,6 +92,16 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
       <Text style={styles.ticketId}>{ticket.id}</Text>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 };
 
 const styles = StyleSheet.create({
@@ -94,9 +128,24 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: 2,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   subtitle: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
+  },
+  typeBadge: {
+    marginLeft: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 1,
+    borderRadius: RADIUS.full,
+  },
+  typeText: {
+    fontSize: 9,
+    fontWeight: '700',
   },
   statusBadge: {
     paddingHorizontal: SPACING.md,

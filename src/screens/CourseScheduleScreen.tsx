@@ -23,7 +23,15 @@ const CourseScheduleScreen: React.FC = () => {
           <Text style={styles.cardTitle}>Today's Schedule</Text>
           {TODAY_SCHEDULE.length > 0 ? (
             TODAY_SCHEDULE.map((course, index) => (
-              <View key={course.id} style={[styles.courseBlock, index > 0 && styles.courseBlockBorder]}>
+              <TouchableOpacity
+                key={course.id}
+                style={[styles.courseBlock, index > 0 && styles.courseBlockBorder]}
+                onPress={() => {
+                  hapticLight();
+                  navigation.navigate('CourseDetail', { course });
+                }}
+                activeOpacity={0.7}
+              >
                 <View style={styles.timeCol}>
                   <Text style={styles.timeText}>{course.startTime}</Text>
                   <Text style={styles.timeEndText}>{course.endTime}</Text>
@@ -36,7 +44,7 @@ const CourseScheduleScreen: React.FC = () => {
                   </View>
                 </View>
                 <Text style={styles.dayText}>{course.day}</Text>
-              </View>
+              </TouchableOpacity>
             ))
           ) : (
             <View style={styles.emptySchedule}>

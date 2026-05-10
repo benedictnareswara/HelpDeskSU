@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
@@ -113,6 +113,18 @@ const MessagesListScreen: React.FC = () => {
           }
         />
       </View>
+
+      {/* New Chat FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          hapticLight();
+          navigation.navigate('NewChat');
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="create-outline" size={24} color={COLORS.white} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -211,6 +223,22 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     fontSize: FONT_SIZES.sm,
     color: COLORS.textTertiary,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
 });
 
